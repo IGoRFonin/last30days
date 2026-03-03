@@ -270,7 +270,7 @@ class ProgressDisplay:
 
     def start_youtube(self):
         msg = random.choice(YOUTUBE_MESSAGES)
-        self.spinner = Spinner(f"{Colors.RED}YouTube{Colors.RESET} {msg}", Colors.RED, quiet=True)
+        self.spinner = Spinner(f"{Colors.RED}YouTube{Colors.RESET} {msg}", Colors.RED)
         self.spinner.start()
 
     def end_youtube(self, count: int):
@@ -279,7 +279,7 @@ class ProgressDisplay:
 
     def start_tiktok(self):
         msg = random.choice(TIKTOK_MESSAGES)
-        self.spinner = Spinner(f"{Colors.PURPLE}TikTok{Colors.RESET} {msg}", Colors.PURPLE, quiet=True)
+        self.spinner = Spinner(f"{Colors.PURPLE}TikTok{Colors.RESET} {msg}", Colors.PURPLE)
         self.spinner.start()
 
     def end_tiktok(self, count: int):
