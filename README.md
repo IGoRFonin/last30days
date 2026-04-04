@@ -4,9 +4,10 @@
 
 ## Installation
 
-### Claude Code (recommended)
+### Claude Code Plugin Marketplace
 ```
-/install github:IGoRFonin/last30days
+/plugin marketplace add IGoRFonin/last30days
+/plugin install last30days@IGoRFonin-last30days
 ```
 
 ### Manual Install
