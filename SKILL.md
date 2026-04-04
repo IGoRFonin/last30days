@@ -1,12 +1,12 @@
 ---
 name: last30days
-version: "2.9.6"
-description: "Deep research engine covering the last 30 days across 10+ sources - Reddit, X/Twitter, YouTube, TikTok, Instagram, Hacker News, Polymarket, and the web. AI synthesizes findings into grounded, cited reports."
+version: "3.0.0"
+description: "Deep research engine covering the last 30 days across 10+ sources - Reddit (with proxy pool), X/Twitter, YouTube, TikTok, Instagram, Hacker News, Polymarket, and the web. AI synthesizes findings into grounded, cited reports."
 argument-hint: 'last30 AI video tools, last30 best project management tools'
 allowed-tools: Bash, Read, Write, AskUserQuestion, WebSearch
-homepage: https://github.com/mvanhorn/last30days-skill
-repository: https://github.com/mvanhorn/last30days-skill
-author: mvanhorn
+homepage: https://github.com/IGoRFonin/last30days
+repository: https://github.com/IGoRFonin/last30days
+author: IGoRFonin
 license: MIT
 user-invocable: true
 metadata:
@@ -14,8 +14,9 @@ metadata:
     emoji: "📰"
     requires:
       env:
-        - SCRAPECREATORS_API_KEY
+        - REDDIT_PROXIES_FILE
       optionalEnv:
+        - SCRAPECREATORS_API_KEY
         - OPENAI_API_KEY
         - XAI_API_KEY
         - OPENROUTER_API_KEY
@@ -30,10 +31,10 @@ metadata:
       bins:
         - node
         - python3
-    primaryEnv: SCRAPECREATORS_API_KEY
+    primaryEnv: REDDIT_PROXIES_FILE
     files:
       - "scripts/*"
-    homepage: https://github.com/mvanhorn/last30days-skill
+    homepage: https://github.com/IGoRFonin/last30days
     tags:
       - research
       - deep-research

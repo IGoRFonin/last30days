@@ -1,4 +1,4 @@
-"""Tests for reddit.py — ScrapeCreators Reddit search module."""
+"""Tests for reddit_direct.py — Reddit direct search module (query expansion, subreddit discovery, etc.)."""
 
 import sys
 import unittest
@@ -7,7 +7,7 @@ from pathlib import Path
 # Add lib to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from lib import reddit
+from lib import reddit_direct as reddit
 
 
 class TestExtractCoreSubject(unittest.TestCase):

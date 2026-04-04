@@ -437,7 +437,7 @@ def _build_status_banner(diag: dict) -> list[str]:
 
     # Reddit — always available; what matters to users is comments or not
     reddit_src = diag.get("reddit_source")
-    if reddit_src == "scrapecreators":
+    if reddit_src in ("scrapecreators", "direct"):
         active.append("Reddit (with comments)")
     else:
         active.append("Reddit (threads only)")
@@ -522,11 +522,12 @@ def _build_status_banner(diag: dict) -> list[str]:
     if not setup_complete:
         suggestions.append("Run /last30days setup to unlock more sources")
     else:
-        # Recommend ScrapeCreators if missing
-        if not has_sc:
-            suggestions.append("⭐ Add SCRAPECREATORS_API_KEY for Reddit comments")
-            suggestions.append("   + TikTok + Instagram")
-            suggestions.append("   100 free calls, no CC — scrapecreators.com (no affiliation)")
+        # Recommend proxy or ScrapeCreators if missing
+        has_proxies = diag.get("reddit_proxies", False)
+        if not has_sc and not has_proxies:
+            suggestions.append("⭐ Add REDDIT_PROXIES_FILE for Reddit comments")
+            suggestions.append("   or SCRAPECREATORS_API_KEY for Reddit + TikTok + Instagram")
+            suggestions.append("   scrapecreators.com — 100 free calls, no CC (no affiliation)")
 
     # --- Assemble box lines ---
     # Collect all content lines, then determine box width dynamically.

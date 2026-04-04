@@ -189,15 +189,15 @@ class TestDisclaimerAlwaysPresent:
 
 
 class TestSCNudgeContent:
-    """SC nudge always includes '100 free API calls, no credit card'."""
+    """Reddit comments nudge mentions REDDIT_PROXIES_FILE or SCRAPECREATORS_API_KEY."""
 
     def test_sc_nudge_content(self):
         q = _compute()
-        assert "100 free API calls, no credit card" in q["nudge_text"]
+        assert "REDDIT_PROXIES_FILE" in q["nudge_text"] or "SCRAPECREATORS_API_KEY" in q["nudge_text"]
 
     def test_sc_nudge_content_when_only_missing_sc(self):
         q = _compute(
             config_overrides={"AUTH_TOKEN": "tok123"},
             ytdlp_installed=True,
         )
-        assert "100 free API calls, no credit card" in q["nudge_text"]
+        assert "REDDIT_PROXIES_FILE" in q["nudge_text"] or "SCRAPECREATORS_API_KEY" in q["nudge_text"]

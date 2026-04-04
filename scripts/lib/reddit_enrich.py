@@ -278,7 +278,7 @@ def enrich_reddit_item_sc(
     Returns:
         Enriched item with top_comments and comment_insights
     """
-    from . import reddit as reddit_mod
+    from . import reddit_direct as reddit_mod
 
     url = item.get("url", "")
     if not url:

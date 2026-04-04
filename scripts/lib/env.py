@@ -367,6 +367,7 @@ def get_config() -> Dict[str, Any]:
         ('XAI_MODEL_PIN', None),
         ('SCRAPECREATORS_API_KEY', None),
         ('APIFY_API_TOKEN', None),
+        ('REDDIT_PROXIES_FILE', None),
         ('AUTH_TOKEN', None),
         ('CT0', None),
         ('BSKY_HANDLE', None),
@@ -421,25 +422,21 @@ def config_exists() -> bool:
 def is_reddit_available(config: Dict[str, Any]) -> bool:
     """Check if Reddit search is available.
 
-    Reddit can use either ScrapeCreators (preferred) or OpenAI.
+    Reddit can use direct proxies, public JSON (always), or OpenAI.
     """
-    has_sc = bool(config.get('SCRAPECREATORS_API_KEY'))
-    has_openai = bool(config.get('OPENAI_API_KEY')) and config.get('OPENAI_AUTH_STATUS') == AUTH_STATUS_OK
-    return has_sc or has_openai
+    return True  # public JSON is always available
 
 
 def get_reddit_source(config: Dict[str, Any]) -> Optional[str]:
     """Determine which Reddit backend to use.
 
-    Priority: ScrapeCreators (cheaper, faster) > OpenAI (legacy)
+    Priority: direct proxies > public JSON > OpenAI (legacy)
 
-    Returns: 'scrapecreators', 'openai', or None
+    Returns: 'direct', 'public', 'openai', or None
     """
-    if config.get('SCRAPECREATORS_API_KEY'):
-        return 'scrapecreators'
-    if config.get('OPENAI_API_KEY') and config.get('OPENAI_AUTH_STATUS') == AUTH_STATUS_OK:
-        return 'openai'
-    return None
+    if config.get('REDDIT_PROXIES_FILE'):
+        return 'direct'
+    return 'public'
 
 
 def get_available_sources(config: Dict[str, Any]) -> str:

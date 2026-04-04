@@ -148,7 +148,7 @@ from lib import (
     models,
     normalize,
     openai_reddit,
-    reddit,
+    reddit_direct,
     reddit_public,
     reddit_enrich,
     render,
@@ -188,41 +188,45 @@ def _search_reddit(
     """Search Reddit (runs in thread).
 
     Hierarchy:
-    1. ScrapeCreators (if SCRAPECREATORS_API_KEY exists) — premium, best quality
-    2. Public Reddit JSON (always available) — free, good for thread discovery
-    3. OpenAI Responses API — legacy fallback for backwards compatibility
+    1. Direct Reddit JSON via proxy pool (if REDDIT_PROXIES_FILE exists)
+    2. Public Reddit JSON (always available) — free, no proxy
+    3. OpenAI Responses API — legacy fallback
 
     Returns:
-        Tuple of (reddit_items, raw_response, error, used_scrapecreators)
+        Tuple of (reddit_items, raw_response, error, used_direct)
     """
     raw_response = None
     reddit_error = None
-    used_scrapecreators = False
+    used_direct = False
 
-    sc_token = config.get("SCRAPECREATORS_API_KEY")
+    proxies_file = config.get("REDDIT_PROXIES_FILE")
 
     if mock:
         raw_response = load_fixture("openai_sample.json")
-    elif sc_token:
-        # === Tier 1: ScrapeCreators path (preferred) ===
-        used_scrapecreators = True
+    elif proxies_file:
+        # === Tier 1: Direct Reddit with proxy pool ===
+        used_direct = True
         try:
-            sys.stderr.write("[Reddit] Using ScrapeCreators API\n")
+            sys.stderr.write("[Reddit] Using direct API with proxy pool\n")
             sys.stderr.flush()
-            result = reddit.search_and_enrich(
+            pool = reddit_direct.make_pool(proxies_file)
+            if not pool:
+                raise RuntimeError(f"No proxies loaded from {proxies_file}")
+            result = reddit_direct.search_and_enrich(
                 topic, from_date, to_date,
-                depth=depth, token=sc_token,
+                depth=depth, pool=pool,
             )
+            pool.save_state()
             reddit_items = result.get("items", [])
             if result.get("error"):
                 reddit_error = result["error"]
-            return reddit_items, result, reddit_error, used_scrapecreators
+            return reddit_items, result, reddit_error, used_direct
         except Exception as e:
-            reddit_error = f"ScrapeCreators: {type(e).__name__}: {e}"
-            sys.stderr.write(f"[Reddit] ScrapeCreators failed: {e}\n")
+            reddit_error = f"RedditDirect: {type(e).__name__}: {e}"
+            sys.stderr.write(f"[Reddit] Direct API failed: {e}\n")
             sys.stderr.flush()
-            used_scrapecreators = False
-            # Fall through to Tier 2 (public JSON)
+            used_direct = False
+            # Fall through to Tier 2
 
     # === Tier 2: Public Reddit JSON (free, always available) ===
     if not mock:
@@ -237,13 +241,11 @@ def _search_reddit(
                 sys.stderr.write(f"[Reddit] Public JSON returned {len(reddit_items)} results\n")
                 sys.stderr.flush()
                 return reddit_items, raw_response, None, False
-            # Empty results — fall through to Tier 3
             sys.stderr.write("[Reddit] Public JSON returned 0 results, trying OpenAI\n")
             sys.stderr.flush()
         except Exception as e:
             sys.stderr.write(f"[Reddit] Public JSON failed: {e}\n")
             sys.stderr.flush()
-            # Fall through to Tier 3
 
     # === Tier 3: OpenAI Responses API (legacy fallback) ===
     if not mock and config.get("OPENAI_API_KEY"):
@@ -311,7 +313,7 @@ def _search_reddit(
         except Exception:
             pass
 
-    return reddit_items, raw_response, reddit_error, used_scrapecreators
+    return reddit_items, raw_response, reddit_error, False
 
 
 def _search_x(
@@ -1128,7 +1130,7 @@ def run_research(
             )
 
         # Collect results (with timeouts to prevent indefinite blocking)
-        reddit_used_sc = False  # Track if ScrapeCreators was used for Reddit
+        reddit_used_sc = False  # Track if direct proxy or ScrapeCreators was used for Reddit
         if reddit_future:
             reddit_timeout = timeouts.get("reddit_future", future_timeout)
             try:
@@ -1316,8 +1318,8 @@ def run_research(
     rate_limited = False  # Set True if Reddit returns 429 during enrichment
 
     if reddit_used_sc and items_to_enrich:
-        # ScrapeCreators already enriched items with comments — just copy to raw list
-        sys.stderr.write(f"[Reddit] Skipping old enrichment — ScrapeCreators already provided comments\n")
+        # Direct proxy / ScrapeCreators already enriched items with comments — skip old enrichment
+        sys.stderr.write(f"[Reddit] Skipping old enrichment — already provided comments\n")
         sys.stderr.flush()
         raw_reddit_enriched = list(reddit_items[:enrich_max])
         items_to_enrich = []  # Skip the enrichment block below
@@ -1737,7 +1739,7 @@ def main():
     search_run_xiaohongshu = has_xiaohongshu
 
     # INCLUDE_SOURCES override: force specific sources on regardless of tier
-    _include_sources = {s.strip().lower() for s in config.get('INCLUDE_SOURCES', '').split(',') if s.strip()}
+    _include_sources = {s.strip().lower() for s in (config.get('INCLUDE_SOURCES') or '').split(',') if s.strip()}
     if _include_sources:
         if 'tiktok' in _include_sources and has_tiktok:
             if not search_run_tiktok:

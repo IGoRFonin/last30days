@@ -1,72 +1,61 @@
-# /last30days v2.9.5
+# /last30days v3.0.0
 
-### Claude Code (recommended)
-```
-/plugin marketplace add mvanhorn/last30days-skill
-/plugin install last30days@last30days-skill
-```
-
-[![ClawHub](https://img.shields.io/badge/ClawHub-last30days--official-blue)](https://clawhub.ai/skills/last30days-official)
-
-```bash
-clawhub install last30days-official
-```
-
-**The AI world reinvents itself every month. This skill keeps you current.** /last30days researches your topic across Reddit, X, YouTube, and other sources from the last 30 days, finds what the community is actually upvoting, sharing, betting on, and saying on camera, and writes you a grounded narrative with real citations. Whether it's Seedance 2.0 access, paper.design prompts, or the latest Nano Banana Pro techniques, you'll know what people who are paying attention already know.
-
-**New in v2.9.5 — Bluesky, Comparative Mode, and Config Improvements:**
-
-- **Bluesky/AT Protocol** is now a social source. Opt-in via `BSKY_HANDLE` + `BSKY_APP_PASSWORD` (create at bsky.app/settings/app-passwords). Full pipeline: search, score, dedupe, render.
-- **Comparative mode** - ask "X vs Y" (e.g., `/last30 Claude Code vs Codex`) and get 3 parallel research passes with a side-by-side comparison: strengths, weaknesses, head-to-head table, and a data-driven verdict.
-- **Per-project .env config** - drop a `.claude/last30days.env` in your project root for per-project API keys.
-- **SessionStart config check** - validates your config automatically when a Claude Code session starts.
-- **Expanded test coverage** - 455+ tests across all modules.
-
-**New in v2.9.1 — Auto-save to ~/Documents/Last30Days/:** Every run now saves the complete briefing as a topic-named `.md` file to your Documents folder. Build a personal research library automatically. Inspired by [@devin_explores](https://x.com/devin_explores).
-
-**New in v2.9 — ScrapeCreators Reddit + Top Comments + Smart Discovery:**
-
-Reddit now runs on [ScrapeCreators](https://scrapecreators.com) by default — one `SCRAPECREATORS_API_KEY` covers Reddit, TikTok, and Instagram (3 sources, 1 key). Smart subreddit discovery finds the right communities automatically, and top comments are elevated with a 10% scoring weight and `💬` display with upvote counts. [Details below.](#whats-new-in-v29)
-
-**New in v2.8 — Instagram Reels + ScrapeCreators:**
-
-Instagram Reels is now the 8th signal source. TikTok and Instagram both run on ScrapeCreators — one API key covers both. [Details below.](#whats-new-in-v28)
-
-**New in V2.5 - dramatically better results:**
-
-1. **Polymarket prediction markets and Hacker News.** See what people are betting real money on and what the technical community is actually discussing. Search "Arizona Basketball" and get NCAA Tournament championship odds (Arizona: 12%), #1 seed probability (88%), and Big 12 title race (69%) - pulled from 50+ open markets across 10 events, not just Reddit opinions. Search "Iran War" and get 15 live prediction markets with strike probabilities, regime change bets, and war declaration odds. Two-pass query expansion with tag-based domain bridging discovers markets where your topic is an outcome buried inside a broader event, not just a title keyword match. HN stories, Show HN posts, and comment insights are scored by points + comments and participate in cross-source convergence detection.
-2. **Multi-signal quality-ranked relevance scoring.** Every result across all six sources runs through a composite scoring pipeline: bidirectional text similarity with synonym expansion and token overlap, engagement velocity normalization, source authority weighting, cross-platform convergence detection via hybrid trigram-token Jaccard similarity, and temporal recency decay. Polymarket markets are ranked on a 5-factor weighted composite - text relevance (30%), 24-hour volume (30%), liquidity depth (15%), price movement velocity (15%), and outcome competitiveness (10%) - with outcome-aware scoring that matches your topic against individual market positions, not just event titles. A blinded evaluation scored v2.5 at 4.38/5.0 vs 3.73/5.0 for v1 across 5 test topics.
-3. **X handle resolution.** Search "Dor Brothers" and the skill resolves their handle (@thedorbrothers), then searches their posts directly - finding their 5,600-like viral tweet that keyword search missed entirely. Works for people, brands, products, and tools.
-
-**New in V2.1:** Open-class skill with watchlists, YouTube transcripts as a source, works in OpenAI Codex CLI. [Full changelog below.](#whats-new-in-v21)
-
-**New in V2:** Smarter query construction, two-phase supplemental search, free X search via bundled Bird client, `--days=N` flag, automatic model fallback. [Full changelog below.](#whats-new-in-v2)
-
-**The tradeoff:** /last30days finds a lot of content but takes 2-8 minutes depending on how niche your topic is. Up to 10 sources searched in parallel, results scored, deduplicated, and synthesized. We think the depth is worth the wait, but `--quick` mode is there if you need speed over thoroughness.
-
-**Best for prompt research**: discover what prompting techniques actually work for any tool (ChatGPT, Midjourney, Claude, Paper, etc.) by learning from real community discussions and best practices.
-
-**But also great for anything trending**: music, culture, news, product recommendations, viral trends, or any question where "what are people saying right now?" matters.
+> Fork of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill) with direct Reddit API via proxy pool (no ScrapeCreators dependency for Reddit).
 
 ## Installation
 
-### Claude Code Plugin (recommended)
+### Claude Code (recommended)
 ```
-/plugin marketplace add mvanhorn/last30days-skill
-/plugin install last30days@last30days-skill
+/install github:IGoRFonin/last30days
 ```
 
-### Gemini CLI
+### Manual Install
 ```bash
-gemini extensions install https://github.com/mvanhorn/last30days-skill.git
+git clone https://github.com/IGoRFonin/last30days.git ~/.claude/skills/last30days
 ```
 
-### Manual Install (Claude Code / Codex)
+## What's different from upstream
+
+**Reddit search uses direct API with your own proxies** instead of ScrapeCreators:
+- Round-robin proxy rotation across your pool
+- Per-proxy cooldown on 429 rate limits
+- User-Agent rotation (10 browser strings)
+- Persistent state — proxy index survives between runs
+- 5 retry attempts per request with automatic failover
+- Falls back to public Reddit JSON (no proxy) if proxies unavailable
+
+This eliminates the ScrapeCreators cost for Reddit while keeping full functionality: global search, subreddit discovery, comment enrichment.
+
+**ScrapeCreators is still used** for TikTok and Instagram (optional).
+
+## Quick Start
+
+1. Create a proxies file with one proxy per line:
+
 ```bash
-git clone https://github.com/mvanhorn/last30days-skill.git ~/.claude/skills/last30days
+mkdir -p ~/.config/last30days
+cat > ~/.config/last30days/proxies.txt << 'EOF'
+http://user:pass@host1:port
+http://user:pass@host2:port
+http://user:pass@host3:port
+EOF
 ```
 
-That's it. Reddit, Hacker News, and Polymarket work immediately with zero configuration. Run `/last30days` to unlock more sources.
+2. Add to config:
+
+```bash
+cat >> ~/.config/last30days/.env << 'EOF'
+REDDIT_PROXIES_FILE=~/.config/last30days/proxies.txt
+EOF
+```
+
+3. Run:
+
+```
+/last30days AI video tools
+```
+
+Reddit, Hacker News, and Polymarket work immediately. Run `/last30days setup` to unlock X/Twitter, YouTube, and more.
 
 ---
 
@@ -95,9 +84,24 @@ Register at [exa.ai](https://exa.ai) for 1,000 free searches/month, no credit ca
 EXA_API_KEY=...
 ```
 
-### 4. Add ScrapeCreators (RECOMMENDED — Reddit comments + TikTok + Instagram)
+### 4. Add proxies for Reddit comments (RECOMMENDED)
 
-**This is the single most impactful upgrade.** Reddit comments are often the highest-value research content — top-voted replies with real insights. ScrapeCreators unlocks comment enrichment plus TikTok and Instagram. Register at [scrapecreators.com](https://scrapecreators.com) for 100 free API calls (no credit card required). After that, pay-as-you-go. last30days receives no money from any API provider — no referrals, no kickbacks.
+**This is the single most impactful upgrade.** Reddit comments are often the highest-value research content — top-voted replies with real insights. Add a proxy file to unlock comment enrichment.
+
+```bash
+# Create proxy file (one per line)
+cat > ~/.config/last30days/proxies.txt << 'EOF'
+http://user:pass@host1:port
+http://user:pass@host2:port
+EOF
+
+# Add to ~/.config/last30days/.env
+REDDIT_PROXIES_FILE=~/.config/last30days/proxies.txt
+```
+
+### 4b. Add ScrapeCreators (optional — TikTok + Instagram)
+
+If you want TikTok and Instagram, register at [scrapecreators.com](https://scrapecreators.com) for 100 free API calls (no credit card required).
 
 ```bash
 # Add to ~/.config/last30days/.env
@@ -127,16 +131,16 @@ OPENROUTER_API_KEY=...  # OpenRouter/Perplexity Sonar Pro
 
 ### Do I need API keys?
 
-| Source | Free Method | API Key | Do you need the API key? |
-|--------|------------|---------|--------------------------|
-| Reddit | Public JSON (always works) | ScrapeCreators | **Yes, strongly recommended.** Unlocks top comments — often the most valuable content. |
+| Source | Free Method | Config | Do you need it? |
+|--------|------------|--------|-----------------|
+| Reddit | Public JSON (always works) | `REDDIT_PROXIES_FILE` | **Yes, strongly recommended.** Unlocks top comments via your own proxies. |
 | X/Twitter | Browser cookies (auto-extracted) | xAI API key (`XAI_API_KEY`) | **No.** Cookies give identical quality. The setup wizard handles this. |
-| YouTube | yt-dlp (`brew install yt-dlp`) | N/A | **No API key exists.** Install yt-dlp for search; transcripts work without it. |
+| YouTube | yt-dlp (`brew install yt-dlp`) | N/A | **No API key exists.** Install yt-dlp for search. |
 | Hacker News | Always free | N/A | **No.** Always works, no config needed. |
 | Polymarket | Always free | N/A | **No.** Always works, no config needed. |
 | Web search | N/A | Exa (`EXA_API_KEY`) | **Optional.** 1,000 free searches/month at exa.ai. |
 | Bluesky | Free app password | N/A | **Optional.** Free app password at bsky.app. |
-| TikTok | N/A | ScrapeCreators | **Optional.** Included with ScrapeCreators key. |
+| TikTok | N/A | `SCRAPECREATORS_API_KEY` | **Optional.** ScrapeCreators key. |
 | Instagram | N/A | ScrapeCreators | **Optional.** Included with ScrapeCreators key. |
 | Truth Social | Browser cookies | N/A | **Optional.** Auto-extracted if logged in. |
 

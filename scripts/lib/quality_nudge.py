@@ -46,9 +46,10 @@ def _is_youtube_active(config: dict, research_results: dict) -> bool:
 
 
 def _is_reddit_comments_active(config: dict, research_results: dict) -> bool:
-    """Check if Reddit with comments is active (ScrapeCreators)."""
+    """Check if Reddit with comments is active (direct proxies or ScrapeCreators)."""
+    has_proxies = bool(config.get("REDDIT_PROXIES_FILE"))
     has_sc = bool(config.get("SCRAPECREATORS_API_KEY"))
-    if not has_sc:
+    if not has_proxies and not has_sc:
         return False
     if research_results.get("reddit_error"):
         return False
@@ -102,13 +103,13 @@ def compute_quality_score(config: dict, research_results: dict) -> dict:
         if has_ytdlp and research_results.get("youtube_error"):
             core_errored.append("youtube")
 
-    # Reddit with comments (ScrapeCreators)
-    has_sc = bool(config.get("SCRAPECREATORS_API_KEY"))
+    # Reddit with comments (direct proxies or ScrapeCreators)
+    has_reddit_comments = bool(config.get("REDDIT_PROXIES_FILE")) or bool(config.get("SCRAPECREATORS_API_KEY"))
     if _is_reddit_comments_active(config, research_results):
         core_active.append("reddit_comments")
     else:
         core_missing.append("reddit_comments")
-        if has_sc and research_results.get("reddit_error"):
+        if has_reddit_comments and research_results.get("reddit_error"):
             core_errored.append("reddit_comments")
 
     score_pct = int(len(core_active) / 5 * 100)
@@ -175,13 +176,12 @@ def _build_nudge_text(core_missing: List[str], core_errored: List[str]) -> str:
     if "reddit_comments" in core_missing:
         if "reddit_comments" in core_errored:
             paid_suggestions.append(
-                "Reddit comments errored — check your ScrapeCreators API key "
-                "at scrapecreators.com."
+                "Reddit comments errored — check your proxy config or ScrapeCreators API key."
             )
         else:
             paid_suggestions.append(
-                "Reddit with comments: add SCRAPECREATORS_API_KEY — "
-                "100 free API calls, no credit card — scrapecreators.com"
+                "Reddit with comments: add REDDIT_PROXIES_FILE with proxies "
+                "or SCRAPECREATORS_API_KEY — scrapecreators.com"
             )
 
     if free_suggestions:
