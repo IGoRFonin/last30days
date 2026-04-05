@@ -1,6 +1,6 @@
 ---
 name: last30days
-version: "3.0.0"
+version: "3.1.0"
 description: "Deep research engine covering the last 30 days across 10+ sources - Reddit (with proxy pool), X/Twitter, YouTube, TikTok, Instagram, Hacker News, Polymarket, and the web. AI synthesizes findings into grounded, cited reports."
 argument-hint: 'last30 AI video tools, last30 best project management tools'
 allowed-tools: Bash, Read, Write, AskUserQuestion, WebSearch

@@ -1,4 +1,4 @@
-# /last30days v3.0.0
+# /last30days v3.1.0
 
 > Fork of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill) with direct Reddit API via proxy pool (no ScrapeCreators dependency for Reddit).
 
