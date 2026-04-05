@@ -370,6 +370,7 @@ def get_config() -> Dict[str, Any]:
         ('REDDIT_PROXIES_FILE', None),
         ('AUTH_TOKEN', None),
         ('CT0', None),
+        ('BIRD_PROXY', None),
         ('BSKY_HANDLE', None),
         ('BSKY_APP_PASSWORD', None),
         ('TRUTHSOCIAL_TOKEN', None),

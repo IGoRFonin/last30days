@@ -1562,6 +1562,8 @@ def main():
     else:
         bird_x.set_credentials(config.get('AUTH_TOKEN'), config.get('CT0'))
 
+    bird_x.set_proxy(config.get('BIRD_PROXY'))
+
     # Auto-detect Bird (no prompts - just use it if available)
     x_source_status = env.get_x_source_status(config)
     x_source = x_source_status["source"]  # 'bird', 'xai', or None

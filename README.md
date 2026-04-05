@@ -27,6 +27,8 @@ git clone https://github.com/IGoRFonin/last30days.git ~/.claude/skills/last30day
 
 This eliminates the ScrapeCreators cost for Reddit while keeping full functionality: global search, subreddit discovery, comment enrichment.
 
+**X/Twitter requests go through a fixed proxy** when `BIRD_PROXY` is configured. This keeps your IP consistent with session cookies, avoiding Twitter's anti-fraud detection. One fixed proxy — no rotation.
+
 **ScrapeCreators is still used** for TikTok and Instagram (optional).
 
 ## Quick Start
@@ -100,7 +102,18 @@ EOF
 REDDIT_PROXIES_FILE=~/.config/last30days/proxies.txt
 ```
 
-### 4b. Add ScrapeCreators (optional — TikTok + Instagram)
+### 4b. Add a fixed proxy for X/Twitter (optional)
+
+Route all Bird search requests through one IP to avoid session invalidation:
+
+```bash
+# Add to ~/.config/last30days/.env
+BIRD_PROXY=http://user:pass@host:port
+```
+
+Supports http, https, and socks5 schemes. Use the same IP you authenticated from, or a single dedicated proxy.
+
+### 4c. Add ScrapeCreators (optional — TikTok + Instagram)
 
 If you want TikTok and Instagram, register at [scrapecreators.com](https://scrapecreators.com) for 100 free API calls (no credit card required).
 
@@ -135,7 +148,7 @@ OPENROUTER_API_KEY=...  # OpenRouter/Perplexity Sonar Pro
 | Source | Free Method | Config | Do you need it? |
 |--------|------------|--------|-----------------|
 | Reddit | Public JSON (always works) | `REDDIT_PROXIES_FILE` | **Yes, strongly recommended.** Unlocks top comments via your own proxies. |
-| X/Twitter | Browser cookies (auto-extracted) | xAI API key (`XAI_API_KEY`) | **No.** Cookies give identical quality. The setup wizard handles this. |
+| X/Twitter | Browser cookies (auto-extracted) | xAI API key (`XAI_API_KEY`), `BIRD_PROXY` | **No.** Cookies give identical quality. The setup wizard handles this. Optional `BIRD_PROXY` for fixed IP. |
 | YouTube | yt-dlp (`brew install yt-dlp`) | N/A | **No API key exists.** Install yt-dlp for search. |
 | Hacker News | Always free | N/A | **No.** Always works, no config needed. |
 | Polymarket | Always free | N/A | **No.** Always works, no config needed. |

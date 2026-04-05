@@ -28,6 +28,7 @@ DEPTH_CONFIG = {
 
 # Module-level credentials injected from .env config
 _credentials: Dict[str, str] = {}
+_proxy: Optional[str] = None
 
 
 def set_credentials(auth_token: Optional[str], ct0: Optional[str]):
@@ -36,6 +37,13 @@ def set_credentials(auth_token: Optional[str], ct0: Optional[str]):
         _credentials['AUTH_TOKEN'] = auth_token
     if ct0:
         _credentials['CT0'] = ct0
+
+
+def set_proxy(proxy_url: Optional[str]):
+    """Inject fixed proxy URL for X requests."""
+    global _proxy
+    if proxy_url:
+        _proxy = proxy_url
 
 
 def _has_injected_credentials() -> bool:
@@ -51,6 +59,9 @@ def _subprocess_env() -> Dict[str, str]:
     # so vendored Bird never hits Safari/Chrome keychain during automation.
     if _has_injected_credentials():
         env.setdefault("BIRD_DISABLE_BROWSER_COOKIES", "1")
+    # Pass fixed proxy for X requests if configured
+    if _proxy:
+        env["BIRD_PROXY"] = _proxy
     return env
 
 

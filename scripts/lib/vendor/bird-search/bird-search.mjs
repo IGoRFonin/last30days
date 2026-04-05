@@ -13,6 +13,16 @@ import { resolveCredentials } from './lib/cookies.js';
 import { TwitterClientBase } from './lib/twitter-client-base.js';
 import { withSearch } from './lib/twitter-client-search.js';
 
+// Proxy support: route all fetch() through a fixed proxy when BIRD_PROXY is set
+if (process.env.BIRD_PROXY) {
+  try {
+    const { ProxyAgent, setGlobalDispatcher } = await import('undici');
+    setGlobalDispatcher(new ProxyAgent(process.env.BIRD_PROXY));
+  } catch (err) {
+    process.stderr.write(`[Bird] Failed to set proxy ${process.env.BIRD_PROXY}: ${err.message}\n`);
+  }
+}
+
 // Build a search-only client (no posting, bookmarks, etc.)
 const SearchClient = withSearch(TwitterClientBase);
 
