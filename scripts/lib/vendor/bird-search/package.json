@@ -9,5 +9,8 @@
     "node": ">=22"
   },
   "license": "MIT",
-  "attribution": "Based on @steipete/bird v0.8.0 by Peter Steinberger (MIT License)"
+  "attribution": "Based on @steipete/bird v0.8.0 by Peter Steinberger (MIT License)",
+  "dependencies": {
+    "undici": "^8.0.2"
+  }
 }
