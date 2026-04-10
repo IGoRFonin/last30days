@@ -12,7 +12,6 @@ import sys
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait as futures_wait
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
 try:
@@ -28,7 +27,7 @@ def _first_of(*values, default=None):
             return v
     return default
 
-from . import http, log
+from . import dates, http, log
 
 SCRAPECREATORS_BASE = "https://api.scrapecreators.com/v1/reddit"
 
@@ -212,27 +211,16 @@ def _parse_date(value) -> Optional[str]:
 
     Global search returns ``created_at`` as an ISO string
     (e.g. "2018-05-03T01:09:17.620000+0000"); subreddit search returns
-    ``created_utc`` as a Unix timestamp.  Handle both.
+    ``created_utc`` as a Unix timestamp. dates.parse_date() handles both,
+    plus edge cases like Z suffix and +0000 (no colon) offset.
+
+    Falsy inputs (None, "", 0) return None, matching the original behavior
+    where a Unix timestamp of 0 meant "no date" rather than epoch 0.
     """
     if not value:
         return None
-    # ISO-8601 string (contains 'T' or '-')
-    if isinstance(value, str) and ("T" in value or "-" in value):
-        try:
-            # Strip trailing offset variations (+0000, Z) for fromisoformat
-            clean = value.replace("Z", "+00:00")
-            if clean.endswith("+0000"):
-                clean = clean[:-5] + "+00:00"
-            dt = datetime.fromisoformat(clean)
-            return dt.strftime("%Y-%m-%d")
-        except (ValueError, TypeError):
-            pass
-    # Unix timestamp (int or float or numeric string)
-    try:
-        dt = datetime.fromtimestamp(float(value), tz=timezone.utc)
-        return dt.strftime("%Y-%m-%d")
-    except (ValueError, TypeError, OSError):
-        return None
+    dt = dates.parse_date(str(value))
+    return dt.strftime("%Y-%m-%d") if dt else None
 
 
 def _extract_subreddit_name(value: Any) -> str:

@@ -56,6 +56,22 @@ class TestParseDate(unittest.TestCase):
     def test_empty(self):
         self.assertIsNone(github._parse_date(""))
 
+    def test_rejects_garbage(self):
+        """The old naive slicing returned 'hello worl' for 'hello world'. Reject it."""
+        self.assertIsNone(github._parse_date("hello world"))
+        self.assertIsNone(github._parse_date("not-a-date"))
+        self.assertIsNone(github._parse_date("abcdefghij"))
+
+    def test_rejects_invalid_date_values(self):
+        """An out-of-range date like 2026-99-99 is not a real date."""
+        self.assertIsNone(github._parse_date("2026-99-99"))
+
+    def test_iso_with_offset(self):
+        self.assertEqual(github._parse_date("2026-03-15T12:00:00+00:00"), "2026-03-15")
+
+    def test_iso_with_no_colon_offset(self):
+        self.assertEqual(github._parse_date("2026-03-15T12:00:00+0000"), "2026-03-15")
+
 
 class TestSearchGithub(unittest.TestCase):
     @patch.dict("os.environ", {}, clear=True)
