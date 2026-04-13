@@ -69,6 +69,50 @@ for t in "${COMMON_TARGETS[@]}"; do
   sync_target "$t" "$SRC/SKILL.md"
 done
 
+# Hermes sync: deploy to Hermes skills directory if it exists
+HERMES_TARGET="$HOME/.hermes/skills/research/last30days"
+if [ -d "$HOME/.hermes/skills/research" ]; then
+  echo ""
+  echo "--- Syncing to Hermes ---"
+  mkdir -p "$HERMES_TARGET/scripts/lib"
+  
+  # Use Hermes-specific SKILL.md if available, fallback to main
+  if [ -f "$SRC/.hermes-plugin/SKILL.md" ]; then
+    cp "$SRC/.hermes-plugin/SKILL.md" "$HERMES_TARGET/SKILL.md"
+  else
+    cp "$SRC/SKILL.md" "$HERMES_TARGET/SKILL.md"
+  fi
+  
+  rsync -a \
+    "$SRC/scripts/last30days.py" \
+    "$SRC/scripts/watchlist.py" \
+    "$SRC/scripts/briefing.py" \
+    "$SRC/scripts/store.py" \
+    "$HERMES_TARGET/scripts/"
+  rsync -a "$SRC/scripts/lib/"*.py "$HERMES_TARGET/scripts/lib/"
+  
+  if [ -d "$SRC/scripts/lib/vendor" ]; then
+    rsync -a "$SRC/scripts/lib/vendor" "$HERMES_TARGET/scripts/lib/"
+  fi
+  
+  if [ -d "$SRC/fixtures" ]; then
+    mkdir -p "$HERMES_TARGET/fixtures"
+    rsync -a "$SRC/fixtures/" "$HERMES_TARGET/fixtures/"
+  fi
+  
+  mod_count=$(ls "$HERMES_TARGET/scripts/lib/"*.py 2>/dev/null | wc -l | tr -d ' ')
+  echo "  Copied $mod_count modules to Hermes"
+  
+  if (
+    cd "$HERMES_TARGET/scripts" &&
+    python3 -c "import briefing, store, watchlist; from lib import youtube_yt, bird_x, render, ui; print('  Import check: OK')"
+  ); then
+    true
+  else
+    echo "  Import check FAILED"
+  fi
+fi
+
 # OpenClaw sync only runs when the private-repo OpenClaw variant is present
 # in the source tree. The public repo does not ship variants/open (the variant
 # is sanitized via strip_for_openclaw.py and published separately from

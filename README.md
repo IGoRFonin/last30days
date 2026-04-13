@@ -24,6 +24,12 @@ OpenClaw:
 clawhub install last30days-official
 ```
 
+Hermes:
+```
+# The skill auto-deploys when you run sync.sh
+# Or manually copy to ~/.hermes/skills/research/last30days/
+```
+
 Zero config. Reddit, HN, Polymarket, and GitHub work immediately. Run it once and the setup wizard unlocks X, YouTube, TikTok, and more in 30 seconds.
 
 ---
