@@ -26,7 +26,7 @@ from .query import extract_core_subject as _query_extract
 from .query_type import detect_query_type
 from .relevance import token_overlap_relevance
 
-MAX_RETRIES = 5
+MAX_RETRIES = 1
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",

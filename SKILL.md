@@ -1,6 +1,6 @@
 ---
 name: last30days
-version: "3.2.2"
+version: "3.2.3"
 description: "Deep research engine covering the last 30 days across 10+ sources - Reddit (with proxy pool), X/Twitter (with optional fixed proxy), YouTube, TikTok, Instagram, Hacker News, Polymarket, Bluesky, GitHub, Xquik, and the web. AI synthesizes findings into grounded, cited reports."
 argument-hint: 'last30 AI video tools, last30 best project management tools'
 allowed-tools: Bash, Read, Write, AskUserQuestion, WebSearch
@@ -732,6 +732,12 @@ Store your plan as `QUERY_PLAN_JSON` — you'll pass it to the script in the nex
 
 ```bash
 # Find skill root — works in repo checkout, Claude Code, or Codex install
+# Try glob-based discovery for any installed version first (latest version wins)
+for _glob_dir in $(ls -d "$HOME/.claude/plugins/cache/last30days-skill/last30days/"*/ 2>/dev/null | sort -V -r); do
+  [ -f "${_glob_dir}scripts/last30days.py" ] && SKILL_ROOT="${_glob_dir%/}" && break
+done
+
+if [ -z "${SKILL_ROOT:-}" ]; then
 for dir in \
   "." \
   "${CLAUDE_PLUGIN_ROOT:-}" \
@@ -743,6 +749,7 @@ for dir in \
   "$HOME/.claude/skills/last30days-3"; do
   [ -n "$dir" ] && [ -f "$dir/scripts/last30days.py" ] && SKILL_ROOT="$dir" && break
 done
+fi
 
 if [ -z "${SKILL_ROOT:-}" ]; then
   echo "ERROR: Could not find scripts/last30days.py" >&2

@@ -125,41 +125,39 @@ class TestFetchJson:
 
 
 class TestRetryOn429:
-    """429 triggers proxy cooldown and retry with different proxy."""
+    """429 triggers proxy cooldown; with MAX_RETRIES=1 returns None immediately."""
 
     @mock.patch("lib.reddit_direct.time.sleep")
     @mock.patch("lib.reddit_direct.urllib.request.build_opener")
     def test_429_cooldowns_proxy_and_retries(self, mock_build, mock_sleep):
-        # First opener raises 429, second succeeds
         fail_opener = mock.MagicMock()
         fail_opener.open.side_effect = urllib.error.HTTPError(
             "https://reddit.com/search.json", 429, "Too Many Requests", {}, None,
         )
-        success_opener = _mock_opener_ok(SAMPLE_LISTING)
-        mock_build.side_effect = [fail_opener, success_opener]
+        mock_build.return_value = fail_opener
         pool = _make_pool()
 
         result = reddit_direct._fetch_json("https://www.reddit.com/search.json", pool)
 
-        assert result is not None
-        assert result["data"]["children"][0]["data"]["title"] == "Claude Code is amazing"
+        assert result is None
+        assert mock_build.call_count == 1
 
 
 class TestRetryOnConnectionError:
-    """Connection error triggers retry with next proxy."""
+    """Connection error returns None immediately with MAX_RETRIES=1."""
 
     @mock.patch("lib.reddit_direct.time.sleep")
     @mock.patch("lib.reddit_direct.urllib.request.build_opener")
     def test_connection_error_retries(self, mock_build, mock_sleep):
         fail_opener = mock.MagicMock()
         fail_opener.open.side_effect = urllib.error.URLError("Connection refused")
-        success_opener = _mock_opener_ok({"data": {"children": []}})
-        mock_build.side_effect = [fail_opener, success_opener]
+        mock_build.return_value = fail_opener
         pool = _make_pool()
 
         result = reddit_direct._fetch_json("https://www.reddit.com/search.json", pool)
 
-        assert result is not None
+        assert result is None
+        assert mock_build.call_count == 1
 
 
 class TestMaxRetries:
@@ -180,7 +178,7 @@ class TestMaxRetries:
 
 
 class TestHtmlAntiBot:
-    """HTML anti-bot response triggers retry."""
+    """HTML anti-bot response returns None immediately with MAX_RETRIES=1."""
 
     @mock.patch("lib.reddit_direct.time.sleep")
     @mock.patch("lib.reddit_direct.urllib.request.build_opener")
@@ -194,14 +192,13 @@ class TestHtmlAntiBot:
         html_opener = mock.MagicMock()
         html_opener.open.return_value = html_resp
 
-        success_opener = _mock_opener_ok(SAMPLE_LISTING)
-        mock_build.side_effect = [html_opener, success_opener]
+        mock_build.return_value = html_opener
         pool = _make_pool()
 
         result = reddit_direct._fetch_json("https://www.reddit.com/search.json", pool)
 
-        assert result is not None
-        assert mock_build.call_count == 2
+        assert result is None
+        assert mock_build.call_count == 1
 
 
 class TestGlobalSearch:
