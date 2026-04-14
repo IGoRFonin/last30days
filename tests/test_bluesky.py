@@ -194,6 +194,22 @@ class TestSearchBlueskyAuth(unittest.TestCase):
         search_call = mock_request.call_args_list[1]
         self.assertEqual(search_call.kwargs.get("headers", {}), {"Authorization": "Bearer tok123"})
 
+    @patch("lib.bluesky.http.request")
+    def test_401_search_refreshes_session_once(self, mock_request):
+        from lib.http import HTTPError
+
+        mock_request.side_effect = [
+            {"accessJwt": "tok-old", "refreshJwt": "ref-old"},
+            HTTPError("HTTP 401: Unauthorized", 401, ""),
+            {"accessJwt": "tok-new", "refreshJwt": "ref-new"},
+            {"posts": [{"uri": "at://did/app.bsky.feed.post/abc", "author": {"handle": "u1"}, "record": {"text": "hi"}}]},
+        ]
+        config = {"BSKY_HANDLE": "user.bsky.social", "BSKY_APP_PASSWORD": "pw"}
+        result = bluesky.search_bluesky("test", "2026-01-01", "2026-03-09", config=config)
+        self.assertEqual(len(result["posts"]), 1)
+        self.assertEqual(mock_request.call_count, 4)
+        self.assertEqual(mock_request.call_args_list[3].kwargs.get("headers", {}), {"Authorization": "Bearer tok-new"})
+
 
 if __name__ == "__main__":
     unittest.main()

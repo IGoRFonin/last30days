@@ -153,6 +153,9 @@ class TestExtractFirefoxCookies:
         with patch(
             "scripts.lib.cookie_extract._get_firefox_profiles_dir",
             return_value=None,
+        ), patch(
+            "scripts.lib.cookie_extract._is_wsl",
+            return_value=False,
         ):
             result = extract_firefox_cookies(".x.com", ["auth_token"])
 
@@ -167,6 +170,9 @@ class TestExtractFirefoxCookies:
         with patch(
             "scripts.lib.cookie_extract._get_firefox_profiles_dir",
             return_value=profiles_dir,
+        ), patch(
+            "scripts.lib.cookie_extract._is_wsl",
+            return_value=False,
         ):
             result = extract_firefox_cookies(".x.com", ["auth_token", "ct0"])
 
@@ -185,6 +191,9 @@ class TestExtractFirefoxCookies:
         with patch(
             "scripts.lib.cookie_extract._get_firefox_profiles_dir",
             return_value=profiles_dir,
+        ), patch(
+            "scripts.lib.cookie_extract._is_wsl",
+            return_value=False,
         ):
             result = extract_firefox_cookies(".x.com", ["auth_token", "ct0"])
 

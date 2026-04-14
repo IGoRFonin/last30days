@@ -7,6 +7,7 @@ Only uses Python stdlib — no external dependencies.
 """
 
 import configparser
+import functools
 import logging
 import platform
 import shutil
@@ -16,6 +17,40 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+@functools.lru_cache(maxsize=1)
+def _is_wsl() -> bool:
+    """Detect if running under Windows Subsystem for Linux.
+
+    Cached after the first call since /proc/version doesn't change at runtime.
+    """
+    try:
+        return "microsoft" in Path("/proc/version").read_text().lower()
+    except OSError:
+        return False
+
+
+def _get_wsl_firefox_profiles_dir() -> Optional[Path]:
+    """Find Firefox profiles directory on the Windows host from WSL.
+
+    Scans /mnt/c/Users/*/AppData/Roaming/Mozilla/Firefox for real user
+    directories (skips Public, Default, etc.).
+    """
+    mnt_users = Path("/mnt/c/Users")
+    if not mnt_users.is_dir():
+        return None
+    skip = {"Public", "Default", "Default User", "All Users"}
+    try:
+        for user_dir in sorted(mnt_users.iterdir()):
+            if user_dir.name in skip or not user_dir.is_dir():
+                continue
+            ff_dir = user_dir / "AppData" / "Roaming" / "Mozilla" / "Firefox"
+            if ff_dir.is_dir():
+                return ff_dir
+    except OSError:
+        pass
+    return None
 
 
 def _get_firefox_profiles_dir() -> Optional[Path]:
@@ -45,18 +80,18 @@ def _find_default_profile(profiles_dir: Path) -> Optional[Path]:
             config = configparser.ConfigParser()
             config.read(str(ini_path), encoding="utf-8")
 
-            # First pass: look for Default=1
-            for section in config.sections():
-                if config.has_option(section, "Default") and config.get(section, "Default") == "1":
-                    return _resolve_profile_path(profiles_dir, config, section)
-
-            # Second pass: first Install* section with Default key (Firefox >= 67 format)
+            # First pass: Install* section (Firefox >= 67 format, takes priority)
             for section in config.sections():
                 if section.startswith("Install") and config.has_option(section, "Default"):
                     raw = config.get(section, "Default")
                     candidate = profiles_dir / raw
                     if candidate.is_dir():
                         return candidate
+
+            # Second pass: Profile section with Default=1
+            for section in config.sections():
+                if section.startswith("Profile") and config.has_option(section, "Default") and config.get(section, "Default") == "1":
+                    return _resolve_profile_path(profiles_dir, config, section)
 
             # Third pass: first Profile section that exists on disk
             for section in config.sections():
@@ -153,6 +188,15 @@ def _query_cookies_db(
                 pass
 
 
+def _try_firefox_dir(profiles_dir: Path, domain: str, cookie_names: List[str]) -> Optional[Dict[str, str]]:
+    """Try to extract cookies from a Firefox profiles directory."""
+    profile_path = _find_default_profile(profiles_dir)
+    if profile_path is None:
+        logger.debug("No Firefox profile found in %s", profiles_dir)
+        return None
+    return _query_cookies_db(profile_path / "cookies.sqlite", domain, cookie_names)
+
+
 def extract_firefox_cookies(
     domain: str, cookie_names: List[str]
 ) -> Optional[Dict[str, str]]:
@@ -160,6 +204,10 @@ def extract_firefox_cookies(
 
     Finds the default Firefox profile, copies cookies.sqlite to a temp file
     (to avoid lock conflicts), and queries for the requested cookies.
+
+    On WSL2, falls back to Windows Firefox if native Linux Firefox has no
+    matching cookies. Windows Firefox cookies are unencrypted, so this works
+    without DPAPI or any Windows-side helpers.
 
     Args:
         domain: The cookie domain to match (e.g. ".x.com"). Matched with LIKE %domain.
@@ -169,17 +217,20 @@ def extract_firefox_cookies(
         Dict of {cookie_name: cookie_value} or None if extraction fails.
     """
     profiles_dir = _get_firefox_profiles_dir()
+    if profiles_dir is not None:
+        result = _try_firefox_dir(profiles_dir, domain, cookie_names)
+        if result is not None:
+            return result
+
+    if platform.system() == "Linux" and _is_wsl():
+        wsl_dir = _get_wsl_firefox_profiles_dir()
+        if wsl_dir is not None:
+            logger.debug("Trying Windows Firefox via WSL: %s", wsl_dir)
+            return _try_firefox_dir(wsl_dir, domain, cookie_names)
+
     if profiles_dir is None:
         logger.debug("Firefox profiles directory not found")
-        return None
-
-    profile_path = _find_default_profile(profiles_dir)
-    if profile_path is None:
-        logger.debug("No Firefox profile found in %s", profiles_dir)
-        return None
-
-    db_path = profile_path / "cookies.sqlite"
-    return _query_cookies_db(db_path, domain, cookie_names)
+    return None
 
 
 def extract_chrome_cookies(
@@ -248,6 +299,31 @@ def extract_cookies(
     return cookies
 
 
+def _extract_firefox_with_source(
+    domain: str, cookie_names: List[str]
+) -> Optional[tuple[Dict[str, str], str]]:
+    """Extract Firefox cookies and report whether they came from native or WSL.
+
+    Returns (cookies, "firefox") for native Linux/macOS Firefox, or
+    (cookies, "firefox-wsl") for Windows Firefox accessed via WSL2.
+    """
+    profiles_dir = _get_firefox_profiles_dir()
+    if profiles_dir is not None:
+        result = _try_firefox_dir(profiles_dir, domain, cookie_names)
+        if result is not None:
+            return (result, "firefox")
+
+    if platform.system() == "Linux" and _is_wsl():
+        wsl_dir = _get_wsl_firefox_profiles_dir()
+        if wsl_dir is not None:
+            logger.debug("Trying Windows Firefox via WSL: %s", wsl_dir)
+            result = _try_firefox_dir(wsl_dir, domain, cookie_names)
+            if result is not None:
+                return (result, "firefox-wsl")
+
+    return None
+
+
 def extract_cookies_with_source(
     browser: str, domain: str, cookie_names: list[str]
 ) -> Optional[tuple[dict[str, str], str]]:
@@ -263,6 +339,7 @@ def extract_cookies_with_source(
 
     Returns:
         Tuple of ({cookie_name: cookie_value}, browser_name) or None.
+        browser_name is "firefox-wsl" when cookies came from Windows Firefox via WSL2.
     """
     extractors = {
         "firefox": extract_firefox_cookies,
@@ -271,6 +348,8 @@ def extract_cookies_with_source(
     }
 
     if browser != "auto":
+        if browser == "firefox":
+            return _extract_firefox_with_source(domain, cookie_names)
         extractor = extractors.get(browser)
         if extractor is None:
             logger.warning("Unknown browser: %s", browser)
@@ -288,8 +367,13 @@ def extract_cookies_with_source(
         order = ["firefox"]
 
     for name in order:
-        result = extractors[name](domain, cookie_names)
-        if result is not None:
-            return (result, name)
+        if name == "firefox":
+            result = _extract_firefox_with_source(domain, cookie_names)
+            if result is not None:
+                return result
+        else:
+            result = extractors[name](domain, cookie_names)
+            if result is not None:
+                return (result, name)
 
     return None
