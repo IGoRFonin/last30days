@@ -10,7 +10,7 @@
     {
       "name": "last30days",
       "description": "Research any topic across Reddit (with proxy pool), X, YouTube, TikTok, Instagram, HN, Polymarket, GitHub, and 5+ more sources.",
-      "version": "3.2.0",
+      "version": "3.2.1",
       "author": {
         "name": "IGoRFonin",
         "url": "https://github.com/IGoRFonin"
